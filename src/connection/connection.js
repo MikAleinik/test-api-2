@@ -56,14 +56,15 @@ module.exports = class Connection {
           const userState = UserState.getInstance();
           this.#user = userState.getUser(message.payload.user.login);
 
-          const messageToAll = Object.create(answer, {});
-          messageToAll.id = null;
-          messageToAll.type =
-            message.type === process.env.USER_LOGIN
-              ? process.env.USER_EXTERNAL_LOGIN
-              : process.env.USER_EXTERNAL_LOGOUT;
-          messageToAll.payload = {
-            user: answer.payload.user,
+          const messageToAll = {
+            id: null,
+            type:
+              message.type === process.env.USER_LOGIN
+                ? process.env.USER_EXTERNAL_LOGIN
+                : process.env.USER_EXTERNAL_LOGOUT,
+            payload: {
+              user: answer.payload.user,
+            },
           };
           authController.run(messageToAll);
         }
@@ -151,16 +152,21 @@ module.exports = class Connection {
   #closeHandler() {
     this.#socket = null;
     if (this.#user !== null) {
+      this.#user.isLogined = false;
+
       /** @type {import('../model/connection-message/connection-message-model').ConnectionMessage} */
       const messageToAll = {
+        id: null,
         type: process.env.USER_EXTERNAL_LOGOUT,
         payload: {
-          login: this.#user.login,
+          user: {
+            login: this.#user.login,
+            isLogined: this.#user.isLogined,
+          },
         },
       };
       const authController = new AuthController();
       authController.run(messageToAll);
-      this.#user.isLogined = false;
       this.#user = null;
     }
   }
